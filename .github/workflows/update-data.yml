@@ -21,7 +21,7 @@ jobs:
 
       - name: 📦 Install dependencies
         run: |
-          pip install yfinance requests
+          pip install yfinance
 
       - name: 📡 Fetch performance data
         run: |
