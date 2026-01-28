@@ -31,10 +31,10 @@ ASSETS = {
     "EWY": {"name": "Korea (EWY)", "type": "etf", "color": "#ef4444"},
     "USO": {"name": "Oil (USO)", "type": "etf", "color": "#84cc16"},
     
-    # Crypto (CoinGecko)
-    "BTC": {"name": "Bitcoin", "type": "crypto", "id": "bitcoin", "color": "#f7931a"},
-    "ETH": {"name": "Ethereum", "type": "crypto", "id": "ethereum", "color": "#627eea"},
-    "SOL": {"name": "Solana", "type": "crypto", "id": "solana", "color": "#00ffa3"},
+    # Crypto ETFs (yfinance)
+    "IBIT": {"name": "Bitcoin (IBIT)", "type": "etf", "color": "#f7931a"},
+    "ETHA": {"name": "Ethereum (ETHA)", "type": "etf", "color": "#627eea"},
+    "SOLZ": {"name": "Solana (SOLZ)", "type": "etf", "color": "#00ffa3"},
 }
 
 COINGECKO_API = "https://api.coingecko.com/api/v3"
@@ -151,41 +151,22 @@ def main():
     date_ranges = get_date_ranges()
     all_data = {}
     
-    # ETF 데이터 수집
+    # 모든 ETF 데이터 수집
     print("\n📊 ETF 데이터 수집")
     for symbol, info in ASSETS.items():
-        if info["type"] == "etf":
-            prices = fetch_etf_data(symbol)
-            if prices:
-                all_data[symbol] = {
-                    "name": info["name"],
-                    "color": info["color"],
-                    "prices": prices,
-                    "performance": {}
-                }
-                
-                # 기간별 수익률 계산
-                for period, start_date in date_ranges.items():
-                    perf = calculate_performance(prices, start_date)
-                    all_data[symbol]["performance"][period] = perf
-    
-    # 암호화폐 데이터 수집
-    print("\n🪙 암호화폐 데이터 수집")
-    for symbol, info in ASSETS.items():
-        if info["type"] == "crypto":
-            prices = fetch_crypto_data(info["id"])
-            if prices:
-                all_data[symbol] = {
-                    "name": info["name"],
-                    "color": info["color"],
-                    "prices": prices,
-                    "performance": {}
-                }
-                
-                # 기간별 수익률 계산
-                for period, start_date in date_ranges.items():
-                    perf = calculate_performance(prices, start_date)
-                    all_data[symbol]["performance"][period] = perf
+        prices = fetch_etf_data(symbol)
+        if prices:
+            all_data[symbol] = {
+                "name": info["name"],
+                "color": info["color"],
+                "prices": prices,
+                "performance": {}
+            }
+            
+            # 기간별 수익률 계산
+            for period, start_date in date_ranges.items():
+                perf = calculate_performance(prices, start_date)
+                all_data[symbol]["performance"][period] = perf
     
     # 결과 저장
     output = {
@@ -210,7 +191,7 @@ def main():
         perf = data["performance"].get("YTD", "N/A")
         if perf is not None:
             sign = "+" if perf >= 0 else ""
-            print(f"  {symbol:5} {data['name']:15} {sign}{perf}%")
+            print(f"  {symbol:5} {data['name']:20} {sign}{perf}%")
 
 
 if __name__ == "__main__":
