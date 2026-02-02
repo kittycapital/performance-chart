@@ -28,7 +28,7 @@ ASSETS = {
     "IWM": {"name": "Russell 2000", "type": "etf", "color": "#06b6d4"},
     "DIA": {"name": "Dow Jones", "type": "etf", "color": "#f59e0b"},
     "GLD": {"name": "Gold", "type": "etf", "color": "#eab308"},
-    "EWY": {"name": "Korea (EWY)", "type": "etf", "color": "#ef4444"},
+    "EWY": {"name": "코스피(EWY)", "type": "etf", "color": "#ef4444"},
     "USO": {"name": "Oil (USO)", "type": "etf", "color": "#84cc16"},
     
     # Crypto ETFs (yfinance)
