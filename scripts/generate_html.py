@@ -22,7 +22,7 @@ def generate_html():
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>자산 성과 비교 차트</title>
+    <title>글로벌 자산 퍼포먼스</title>
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/chartjs-adapter-date-fns"></script>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
@@ -101,9 +101,14 @@ def generate_html():
             display: flex;
             justify-content: space-between;
             align-items: center;
-            padding: 12px 0;
+            padding: 12px 8px;
             border-bottom: 1px solid #222;
+            cursor: pointer;
+            border-radius: 6px;
+            transition: all 0.2s;
         }}
+        .stats-item:hover {{ background: #1a1a1a; }}
+        .stats-item.highlighted {{ background: #1e3a5f; }}
         .stats-item:last-child {{ border-bottom: none; }}
         .stats-asset {{
             display: flex;
@@ -123,38 +128,13 @@ def generate_html():
         }}
         .stats-perf.positive {{ color: #22c55e; }}
         .stats-perf.negative {{ color: #ef4444; }}
-        
-        .legend {{
-            display: flex;
-            flex-wrap: wrap;
-            gap: 16px;
-            margin-top: 20px;
-            padding: 16px;
-            background: #111;
-            border-radius: 12px;
-        }}
-        .legend-item {{
-            display: flex;
-            align-items: center;
-            gap: 6px;
-            cursor: pointer;
-            opacity: 1;
-            transition: opacity 0.2s;
-        }}
-        .legend-item.disabled {{ opacity: 0.3; }}
-        .legend-dot {{
-            width: 12px;
-            height: 12px;
-            border-radius: 50%;
-        }}
-        .legend-label {{ font-size: 13px; color: #d1d5db; }}
     </style>
 </head>
 <body>
     <div class="container">
         <div class="header">
             <div>
-                <h1 class="title">📊 자산 성과 비교</h1>
+                <h1 class="title">글로벌 자산 퍼포먼스</h1>
                 <p class="updated">마지막 업데이트: {last_updated}</p>
             </div>
             <div class="period-buttons">
@@ -172,12 +152,10 @@ def generate_html():
             </div>
             
             <div class="stats-box">
-                <div class="stats-title">📈 수익률 (<span id="period-label">YTD</span>)</div>
+                <div class="stats-title">수익률 (<span id="period-label">YTD</span>)</div>
                 <ul class="stats-list" id="stats-list"></ul>
             </div>
         </div>
-        
-        <div class="legend" id="legend"></div>
     </div>
 
     <script>
@@ -185,7 +163,7 @@ def generate_html():
         
         let currentPeriod = 'YTD';
         let chart = null;
-        let hiddenAssets = new Set();
+        let highlightedAsset = null;
         
         // 기간별 날짜 계산
         function getStartDate(period) {{
@@ -220,16 +198,17 @@ def generate_html():
             const datasets = [];
             
             Object.entries(ASSETS_DATA).forEach(([symbol, data]) => {{
-                if (hiddenAssets.has(symbol)) return;
-                
                 const percentData = calculatePercentChange(data.prices, startDate);
                 if (percentData.length > 0) {{
+                    const isHighlighted = highlightedAsset === symbol;
+                    const isFaded = highlightedAsset && highlightedAsset !== symbol;
+                    
                     datasets.push({{
                         label: symbol,
                         data: percentData,
-                        borderColor: data.color,
+                        borderColor: isFaded ? data.color + '40' : data.color,
                         backgroundColor: data.color + '20',
-                        borderWidth: 2,
+                        borderWidth: isHighlighted ? 4 : 2,
                         pointRadius: 0,
                         pointHoverRadius: 4,
                         tension: 0.1,
@@ -300,7 +279,6 @@ def generate_html():
                             const ctx = chart.ctx;
                             const chartArea = chart.chartArea;
                             
-                            // Collect all end points with their y positions
                             const endpoints = [];
                             
                             chart.data.datasets.forEach((dataset, i) => {{
@@ -320,10 +298,8 @@ def generate_html():
                                 }});
                             }});
                             
-                            // Sort by y position
                             endpoints.sort((a, b) => a.y - b.y);
                             
-                            // Adjust overlapping labels (minimum 18px apart)
                             const minGap = 18;
                             for (let i = 1; i < endpoints.length; i++) {{
                                 const prev = endpoints[i - 1];
@@ -333,7 +309,6 @@ def generate_html():
                                 }}
                             }}
                             
-                            // Draw labels
                             ctx.save();
                             endpoints.forEach(ep => {{
                                 const sign = ep.value >= 0 ? '+' : '';
@@ -358,7 +333,6 @@ def generate_html():
             const periodLabel = document.getElementById('period-label');
             periodLabel.textContent = currentPeriod;
             
-            // 성과순 정렬
             const sorted = Object.entries(ASSETS_DATA)
                 .map(([symbol, data]) => ({{
                     symbol,
@@ -372,10 +346,10 @@ def generate_html():
             list.innerHTML = sorted.map(asset => {{
                 const perfClass = asset.perf >= 0 ? 'positive' : 'negative';
                 const perfSign = asset.perf >= 0 ? '+' : '';
-                const opacity = hiddenAssets.has(asset.symbol) ? '0.3' : '1';
+                const highlightClass = highlightedAsset === asset.symbol ? ' highlighted' : '';
                 
                 return `
-                    <li class="stats-item" style="opacity: ${{opacity}}">
+                    <li class="stats-item${{highlightClass}}" data-symbol="${{asset.symbol}}">
                         <div class="stats-asset">
                             <div class="stats-dot" style="background: ${{asset.color}}"></div>
                             <span class="stats-name">${{asset.name}}<span class="stats-symbol">${{asset.symbol}}</span></span>
@@ -384,29 +358,15 @@ def generate_html():
                     </li>
                 `;
             }}).join('');
-        }}
-        
-        // 범례 생성
-        function createLegend() {{
-            const legend = document.getElementById('legend');
             
-            legend.innerHTML = Object.entries(ASSETS_DATA).map(([symbol, data]) => `
-                <div class="legend-item" data-symbol="${{symbol}}">
-                    <div class="legend-dot" style="background: ${{data.color}}"></div>
-                    <span class="legend-label">${{data.name}}</span>
-                </div>
-            `).join('');
-            
-            // 클릭 이벤트
-            legend.querySelectorAll('.legend-item').forEach(item => {{
+            // 클릭 이벤트 추가
+            list.querySelectorAll('.stats-item').forEach(item => {{
                 item.addEventListener('click', () => {{
                     const symbol = item.dataset.symbol;
-                    if (hiddenAssets.has(symbol)) {{
-                        hiddenAssets.delete(symbol);
-                        item.classList.remove('disabled');
+                    if (highlightedAsset === symbol) {{
+                        highlightedAsset = null;
                     }} else {{
-                        hiddenAssets.add(symbol);
-                        item.classList.add('disabled');
+                        highlightedAsset = symbol;
                     }}
                     updateChart();
                     updateStats();
@@ -426,7 +386,6 @@ def generate_html():
         }});
         
         // 초기화
-        createLegend();
         updateChart();
         updateStats();
     </script>
